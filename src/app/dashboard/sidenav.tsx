@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import NavLinks from './nav-links';
 import DepocheckLogo from '@/app/ui/depocheck-logo';
 import { useAuth } from '@/app/context/auth-context';

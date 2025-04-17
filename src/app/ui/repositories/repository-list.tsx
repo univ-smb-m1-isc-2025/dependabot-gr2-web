@@ -1,15 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from "@/app/context/auth-context";
 import { PlusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+
+interface Repository {
+	id: string;
+	name: string;
+	branch: string;
+	type: string;
+	url: string;
+	username: string;
+	lastVerificationDate?: string;
+	numberOfDependencies?: number;
+	pendingUpdatesCount?: number;
+  }
 
 interface RepositoryListProps {
     onSelectRepository: (id: string) => void;
 }
 
 export default function RepositoryList({ onSelectRepository }: RepositoryListProps) {
-	const [repositories, setRepositories] = useState<any[]>([]);
+	const [repositories, setRepositories] = useState<Repository[]>([]);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
 	const [newRepoName, setNewRepoName] = useState<string>('');
 	const [newRepoUsername, setNewRepoUsername] = useState<string>(localStorage.getItem('username') || '');
@@ -20,53 +32,49 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 	const [isModalOpen, setModalOpen] = useState<boolean>(false);
 	const { logout } = useAuth();
 
-	useEffect(() => {
-		fetchRepositories();
-	}, []);
-
-	const fetchRepositories = async () => {
+	const fetchRepositories = useCallback(async () => {
 		setIsLoading(true);
 		const token = localStorage.getItem('token');
 		if (!token) {
+		  logout();
+		  setIsLoading(false);
+		  return;
+		}
+	
+		try {
+		  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+		  const response = await fetch(`${apiUrl}/api/deps/repositories`, {
+			method: 'POST',
+			headers: {
+			  'Content-Type': 'application/json',
+			  'Authorization': `Bearer ${token}`,
+			},
+			credentials: 'include',
+		  });
+		  if(response.status === 401) {
 			logout();
 			setIsLoading(false);
 			return;
-		}
-
-		try {
-			const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-			const response = await fetch(`${apiUrl}/api/deps/repositories`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`,
-				},
-				credentials: 'include',
-			});
-			if(response.status === 401) {
-				logout();
-				setIsLoading(false);
-				return;
-			}
-			if (!response.ok) {
-				throw new Error('Failed to fetch repositories');
-			}
-
-			const data = await response.json();
-			if (data.repositories && Array.isArray(data.repositories)) {
-				setRepositories(data.repositories);
-			} else {
-				console.error('Unexpected response format:', data);
-				setRepositories([]);
-			}
+		  }
+		  if (!response.ok) {
+			throw new Error('Failed to fetch repositories');
+		  }
+	
+		  const data = await response.json();
+		  if (data.repositories && Array.isArray(data.repositories)) {
+			setRepositories(data.repositories);
+		  } else {
+			console.error('Unexpected response format:', data);
+			setRepositories([]);
+		  }
 		}
 		catch (error) {
-			console.error('Error fetching repositories:', error);
+		  console.error('Error fetching repositories:', error);
 		}
 		finally {
-			setIsLoading(false);
+		  setIsLoading(false);
 		}
-	}
+	  }, [logout]);
 
 	const getTimeDifference = (lastVerificationDate: string) => {
 		const date = new Date(lastVerificationDate + 'Z'); // Set UTC timezone to avoid timezone issues
@@ -78,13 +86,13 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 		const diffMinutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
 		
 		if (diffDays > 0) {
-			return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+		  return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 		} else if (diffHours > 0) {
-			return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+		  return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
 		} else {
-			return `${diffMinutes || 1} minute${(diffMinutes > 1 || diffMinutes === 0) ? 's' : ''} ago`;
+		  return `${diffMinutes || 1} minute${(diffMinutes > 1 || diffMinutes === 0) ? 's' : ''} ago`;
 		}
-	}
+	  };
 
 	const handleAddRepository = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -222,41 +230,49 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 	
 	const renderRepositoriesTable = () => {
 		return (
-			<div className="shadow overflow-hidden rounded-lg bg-gray-700 text-gray-100">
-				<table className="min-w-full divide-y divide-gray-500 bg-gray-700 text-gray-100">
-					<thead className="bg-gray-700">
-						<tr>
-							<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Name</th>
-							<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Branch</th>
-							<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Type</th>
-							<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Last update check</th>
-							<th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Up to date</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-gray-200 bg-gray-800 text-white">
-						{repositories.map((repo) => (
-							<tr 
-								key={repo.id} 
-								className="bg-gray-700 hover:bg-gray-600 cursor-pointer relative group"
-								onClick={() => onSelectRepository(repo.id)}
-							>
-								<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{repo.name}</td>
-								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{repo.branch}</td>
-								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{repo.type}</td>
-								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">
-									{repo.lastVerificationDate 
-										? getTimeDifference(repo.lastVerificationDate)
-										: 'Never'
-									}
-								</td>
-								<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{repo.numberOfDependencies != null && repo.pendingUpdatesCount != null ? `${repo.numberOfDependencies - repo.pendingUpdatesCount} / ${repo.numberOfDependencies}` : 'NaN'}</td>
-							</tr>
-						))}
-					</tbody>
-				</table>
-			</div>
+		  <div className="shadow overflow-hidden rounded-lg bg-gray-700 text-gray-100">
+			<table className="min-w-full divide-y divide-gray-500 bg-gray-700 text-gray-100">
+			  <thead className="bg-gray-700">
+				<tr>
+				  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Name</th>
+				  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Branch</th>
+				  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Type</th>
+				  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Last update check</th>
+				  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-100 uppercase tracking-wider">Up to date</th>
+				</tr>
+			  </thead>
+			  <tbody className="divide-y divide-gray-200 bg-gray-800 text-white">
+				{repositories.map((repo) => (
+				  <tr 
+					key={repo.id} 
+					className="bg-gray-700 hover:bg-gray-600 cursor-pointer relative group"
+					onClick={() => onSelectRepository(repo.id)}
+				  >
+					<td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">{repo.name}</td>
+					<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{repo.branch}</td>
+					<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">{repo.type}</td>
+					<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">
+					  {repo.lastVerificationDate 
+						? getTimeDifference(repo.lastVerificationDate)
+						: 'Never'
+					  }
+					</td>
+					<td className="px-6 py-4 whitespace-nowrap text-sm text-gray-100">
+					  {repo.numberOfDependencies !== undefined && repo.pendingUpdatesCount !== undefined 
+						? `${repo.numberOfDependencies - repo.pendingUpdatesCount} / ${repo.numberOfDependencies}` 
+						: 'NaN'}
+					</td>
+				  </tr>
+				))}
+			  </tbody>
+			</table>
+		  </div>
 		);
-	}
+	};
+	
+	useEffect(() => {
+	fetchRepositories();
+	}, [fetchRepositories]);
 
 	return (
 		<div className="w-full mx-auto p-6 bg-gray-800 rounded-lg shadow-md">
