@@ -36,7 +36,7 @@ export default function Page() {
 					)}
 				</div>
 				<div className="flex items-center justify-center p-6 md:w-3/5 md:px-28 md:py-12">
-					<p>Fixed</p>
+					<p>In the fast-paced world of software development, keeping your project's dependencies up to date is crucial for maintaining security, performance, and compatibility. Introducing Dependency Checker, an innovative application designed to streamline the process of verifying and updating dependencies for your GitHub projects.</p>
 				</div>
 			</div>
 		</main>
