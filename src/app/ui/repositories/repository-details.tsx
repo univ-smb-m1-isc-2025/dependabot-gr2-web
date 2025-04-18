@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from "@/app/context/auth-context";
 import { ArrowLeftIcon, TrashIcon } from '@heroicons/react/24/outline';
-import getConfig from 'next/config';
+import { getApiUrl } from '@/app/lib/api-url';
 
 // Define interfaces for your data structures
 interface Repository {
@@ -36,7 +36,6 @@ export default function RepositoryDetails({ repositoryId, onBack }: RepositoryDe
   const [repositoryDetails, setRepositoryDetails] = useState<RepositoryDetailsData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { logout } = useAuth();
-  const { publicRuntimeConfig } = getConfig();
 
   const fetchRepositoryDetails = useCallback(async (repoID: string) => {
     setIsLoading(true);
@@ -47,7 +46,7 @@ export default function RepositoryDetails({ repositoryId, onBack }: RepositoryDe
       return;
     }
     try {
-      const apiUrl = `${publicRuntimeConfig.apiUrl  || 'https://api.depocheck.fr'}/api/deps/repository/${repoID}/dependencies`;
+      const apiUrl = `${getApiUrl()}/api/deps/repository/${repoID}/dependencies`;
       console.log('Fetching repository details from:', apiUrl);
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -86,7 +85,7 @@ export default function RepositoryDetails({ repositoryId, onBack }: RepositoryDe
         return;
       }
       try {
-        const apiUrl = `${publicRuntimeConfig.apiUrl  || 'https://api.depocheck.fr'}/api/deps/repository/${repoID}`;
+        const apiUrl = `${getApiUrl()}/api/deps/repository/${repoID}`;
         const response = await fetch(apiUrl, {
           method: 'DELETE',
           headers: {

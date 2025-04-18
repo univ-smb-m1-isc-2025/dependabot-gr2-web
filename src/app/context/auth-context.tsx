@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import getConfig from "next/config";
+import { getApiUrl } from "../lib/api-url";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -18,7 +18,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState<string | null>(null);
   const router = useRouter();
-  const { publicRuntimeConfig } = getConfig();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -34,7 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (usernameInput: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = publicRuntimeConfig.apiUrl  || 'https://api.depocheck.fr';
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/auth/signin`, {
         method: 'POST',
         headers: {
@@ -66,7 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signup = async (usernameInput: string, email: string, password: string): Promise<boolean> => {
     try {
-      const apiUrl = publicRuntimeConfig.apiUrl || 'https://api.depocheck.fr';
+      const apiUrl = getApiUrl();
       const response = await fetch(`${apiUrl}/api/auth/signup`, {
         method: 'POST',
         headers: {
