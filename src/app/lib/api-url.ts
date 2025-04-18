@@ -1,3 +1,6 @@
+// Import at the top level instead of inside try-catch
+import getConfig from 'next/config';
+
 export function getApiUrl() {
   // For client-side rendering, check hostname first
   if (typeof window !== 'undefined') {
@@ -7,9 +10,8 @@ export function getApiUrl() {
     }
   }
   
-  // Try next/config (might not work in App Router)
+  // Try next/config with proper error handling
   try {
-    const getConfig = require('next/config').default;
     const { publicRuntimeConfig } = getConfig() || {};
     if (publicRuntimeConfig?.apiUrl) {
       return publicRuntimeConfig.apiUrl;
