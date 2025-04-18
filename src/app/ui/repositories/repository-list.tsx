@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from "@/app/context/auth-context";
 import { PlusIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import getConfig from 'next/config';
 
 interface Repository {
 	id: string;
@@ -31,6 +32,7 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 	const [newRepoType, setNewRepoType] = useState<string>('');
 	const [isModalOpen, setModalOpen] = useState<boolean>(false);
 	const { logout } = useAuth();
+	const { publicRuntimeConfig } = getConfig();
 
 	const fetchRepositories = useCallback(async () => {
 		setIsLoading(true);
@@ -42,7 +44,7 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 		}
 	
 		try {
-		  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+		  const apiUrl = publicRuntimeConfig.apiUrl  || 'https://api.depocheck.fr';
 		  const response = await fetch(`${apiUrl}/api/deps/repositories`, {
 			method: 'POST',
 			headers: {
@@ -105,7 +107,7 @@ export default function RepositoryList({ onSelectRepository }: RepositoryListPro
 		}
 
 		try {
-			const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+			const apiUrl = publicRuntimeConfig.apiUrl  || 'https://api.depocheck.fr';
 			const response = await fetch(`${apiUrl}/api/deps/add-repository`, {
 				method: 'POST',
 				headers: {
